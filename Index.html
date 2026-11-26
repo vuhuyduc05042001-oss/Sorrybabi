@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gửi Người Thương Một Lời Xin Lỗi ❤️</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- LZ-String để nén dữ liệu (lời nhắn + ảnh đã thu nhỏ) vào URL gọn nhẹ -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
+    <!-- Canvas Confetti cho hiệu ứng pháo hoa/tim bay khi tha lỗi -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+    <!-- Google Fonts tiếng Việt cực đẹp -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Quicksand', 'sans-serif'],
+                        script: ['Dancing Script', 'cursive'],
+                    },
+                    colors: {
+                        cream: '#FFF9F5',
+                        blush: '#FFE4E6',
+                        roseMain: '#FB7185',
+                        roseDeep: '#E11D48',
+                    },
+                    animation: {
+                        'float': 'float 4s ease-in-out infinite',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'wiggle': 'wiggle 1s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        },
+                        wiggle: {
+                            '0%, 100%': { transform: 'rotate(-2deg)' },
+                            '50%': { transform: 'rotate(2deg)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background: linear-gradient(135deg, #FFF5F7 0%, #FFF9F2 50%, #FFE4E6 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+            color: #4A3538;
+        }
+
+        /* Hiệu ứng khung ảnh Polaroid */
+        .polaroid {
+            background: #ffffff;
+            padding: 12px 12px 24px 12px;
+            box-shadow: 0 10px 25px -5px rgba(225, 29, 72, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+            border-radius: 12px;
+            transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
+        }
+        .polaroid:hover {
+            transform: scale(1.03) rotate(0deg) !important;
+            box-shadow: 0 20px 30px -10px rgba(225, 29, 72, 0.25);
+            z-index: 10;
+        }
+
+        /* Hiệu ứng phong bì thư */
+        .envelope-wrapper {
+            perspective: 1000px;
+        }
+        .envelope-flap {
+            transform-origin: top;
+            transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .envelope-open .envelope-flap {
+            transform: rotateX(180deg);
+        }
+
+        /* Hiệu ứng tim bay nền */
+        .floating-heart {
+            position: fixed;
+            bottom: -30px;
+            pointer-events: none;
+            z-index: 0;
+            animation: riseUp linear forwards;
+            opacity: 0.6;
+        }
+        @keyframes riseUp {
+            0% {
+                transform: translateY(0) scale(0.8) rotate(0deg);
+                opacity: 0.7;
+            }
+            100% {
+                transform: translateY(-110vh) scale(1.3) rotate(25deg);
+                opacity: 0;
+            }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #FFF5F7;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #FDA4AF;
+            border-radius: 9999px;
+        }
+
+        /* Voucher đục lỗ hai bên */
+        .voucher-card {
+            position: relative;
+            background: linear-gradient(to right, #FFF1F2, #FFFFFF);
+            border: 2px dashed #FDA4AF;
+        }
+        .voucher-card::before, .voucher-card::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 18px;
+            height: 18px;
+            background-color: #FFF7F8;
+            border-radius: 50%;
+            transform: translateY(-50%);
+            border: 2px solid #FDA4AF;
+        }
+        .voucher-card::before { left: -11px; }
+        .voucher-card::after { right: -11px; }
+
+        /* Animation hiện từng đoạn văn */
+        .fade-in-up {
+            animation: fadeInUp 0.8s ease forwards;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(18px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-rose-200 selection:text-rose-900">
+
+    <!-- Container hiệu ứng tim bay nền -->
+    <div id="hearts-container"></div>
+
+    <!-- Thông báo nổi (Toast Message thay thế alert) -->
+    <div id="toast" class="fixed top-5 left-1/2 -translate-x-1/2 z-50 hidden transition-all duration-300 transform scale-95 opacity-0">
+        <div class="bg-gray-900/90 backdrop-blur-md text-white px-5 py-3 rounded-full shadow-xl flex items-center gap-2.5 text-sm font-medium">
+            <span id="toast-icon">💌</span>
+            <span id="toast-msg">Thông báo</span>
+        </div>
+    </div>
+
+    <!-- Nút điều khiển âm thanh & Chuyển chế độ nổi góc trên -->
+    <div class="fixed top-4 right-4 z-40 flex items-center gap-2">
+        <button id="music-toggle-btn" onclick="toggleMusic()" title="Bật/Tắt nhạc piano"
+            class="bg-white/85 backdrop-blur-md hover:bg-white text-rose-500 p-3 rounded-full shadow-md border border-rose-100 transition active:scale-95 flex items-center gap-1.5 text-xs font-bold">
+            <span id="music-icon">🔇</span>
+            <span class="hidden sm:inline" id="music-label">Bật nhạc</span>
+        </button>
+        <button id="back-to-editor-btn" onclick="switchToEditor()"
+            class="hidden bg-white/90 backdrop-blur-md hover:bg-rose-50 text-gray-700 px-3.5 py-2.5 rounded-full shadow-md border border-rose-200 transition active:scale-95 text-xs font-bold flex items-center gap-1">
+            <span>✏️</span>
+            <span>Sửa nội dung</span>
+        </button>
+    </div>
+
+    <!-- =====================================================================
+         1. CHẾ ĐỘ TẠO & TÙY CHỈNH (EDITOR MODE)
+         ===================================================================== -->
+    <main id="editor-view" class="relative z-10 max-w-3xl mx-auto px-4 py-8 sm:py-12">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center gap-2 bg-white/80 px-4 py-1.5 rounded-full shadow-sm border border-rose-100 text-rose-500 text-xs font-bold mb-3">
+                <span>💘</span> TRẠM GIẢI CỨU TÌNH YÊU
+            </div>
+            <h1 class="font-script text-4xl sm:text-5xl font-bold text-rose-600 mb-2">
+                Tạo Thư Xin Lỗi Người Yêu
+            </h1>
+            <p class="text-sm sm:text-base text-gray-600 max-w-lg mx-auto">
+                Viết lời chân thành, gắn ảnh kỷ niệm của hai đứa và tạo link gửi thẳng qua Zalo / Messenger khiến người ấy mủi lòng ngay lập tức!
+            </p>
+            <div class="mt-4">
+                <button type="button" onclick="downloadBlankIndexHtml()"
+                    class="inline-flex items-center gap-2 bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold px-4 py-2.5 rounded-full shadow-md transition active:scale-95">
+                    <span>⬇️</span> Tải file index.html gốc (để up lên GitHub)
+                </button>
+            </div>
+        </div>
+
+        <!-- Mẹo nhỏ chia sẻ link -->
+        <div class="bg-amber-50/90 border border-amber-200 rounded-2xl p-4 mb-6 flex items-start gap-3 shadow-sm">
+            <span class="text-xl mt-0.5">💡</span>
+            <div class="text-xs sm:text-sm text-amber-900 leading-relaxed">
+                <strong class="font-bold">Mẹo để tạo link ngắn gọn gửi Zalo/Messenger cực mượt:</strong>
+                Web tự động nén ảnh tải từ máy của bạn xuống kích thước siêu nhẹ để đóng gói thẳng vào đường link (không cần đăng nhập). Tuy nhiên, để link không quá dài, bạn nên chọn <strong>1–3 ảnh đẹp nhất</strong> hoặc dán <strong>link ảnh online</strong> (Google Photos, Facebook, Imgur...).
+            </div>
+        </div>
+
+        <!-- Form nhập liệu -->
+        <div class="bg-white/90 backdrop-blur-md rounded-3xl shadow-xl border border-rose-100 p-5 sm:p-8 space-y-6">
+            
+            <!-- Phần 1: Thông tin cơ bản -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1.5">Tên / Biệt danh người yêu 💕</label>
+                    <input type="text" id="input-lover-name" placeholder="VD: Bé Mèo, Công chúa của anh..."
+                        value="Công chúa của anh"
+                        class="w-full px-4 py-3 rounded-2xl bg-rose-50/50 border border-rose-200 focus:border-rose-400 focus:ring-2 focus:ring-rose-200 outline-none transition text-sm font-medium">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1.5">Danh xưng của bạn 🥺</label>
+                    <input type="text" id="input-sender-name" placeholder="VD: Anh, Chồng iu, Cún con..."
+                        value="Anh"
+                        class="w-full px-4 py-3 rounded-2xl bg-rose-50/50 border border-rose-200 focus:border-rose-400 focus:ring-2 focus:ring-rose-200 outline-none transition text-sm font-medium">
+                </div>
+            </div>
+
+            <!-- Phần 2: Lời xin lỗi chân thành -->
+            <div>
+                <div class="flex items-center justify-between mb-1.5">
+                    <label class="block text-sm font-bold text-gray-700">Lời xin lỗi tận đáy lòng 💌</label>
+                    <button type="button" onclick="fillSampleMessage()" class="text-xs text-rose-500 hover:text-rose-700 font-bold underline">
+                        ✨ Gợi ý mẫu câu hay
+                    </button>
+                </div>
+                <textarea id="input-message" rows="5" placeholder="Viết những điều bạn muốn nói với người ấy..."
+                    class="w-full px-4 py-3 rounded-2xl bg-rose-50/50 border border-rose-200 focus:border-rose-400 focus:ring-2 focus:ring-rose-200 outline-none transition text-sm leading-relaxed">Hôm nay anh thực sự sai rồi. Nhìn em buồn mà lòng anh thắt lại, chẳng làm được việc gì nên hồn cả. Anh không muốn vì sự vô tâm của mình mà làm nụ cười xinh đẹp nhất của em biến mất. Cho anh xin lỗi thật nhiều nhé, đừng giận anh nữa mà tội nghiệp anh lắm... ❤️</textarea>
+            </div>
+
+            <!-- Phần 3: Album Ảnh Kỷ Niệm -->
+            <div class="border-t border-rose-100 pt-6">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                    <div>
+                        <h3 class="text-base font-bold text-gray-800 flex items-center gap-1.5">
+                            <span>📸</span> Album Ảnh Kỷ Niệm (Tối đa 4 ảnh)
+                        </h3>
+                        <p class="text-xs text-gray-500">Tải ảnh từ máy (tự động nén nhẹ) hoặc dán URL ảnh</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <label class="cursor-pointer bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl shadow-sm transition active:scale-95 flex items-center gap-1.5">
+                            <span>📁 Tải ảnh lên</span>
+                            <input type="file" id="photo-upload-input" accept="image/*" multiple class="hidden" onchange="handleImageUpload(event)">
+                        </label>
+                        <button type="button" onclick="addPhotoByUrlPrompt()"
+                            class="bg-rose-100 hover:bg-rose-200 text-rose-700 text-xs font-bold px-3.5 py-2.5 rounded-xl transition active:scale-95">
+                            🔗 Dán link ảnh
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Form nhập URL ảnh ẩn/hiện -->
+                <div id="url-input-box" class="hidden bg-rose-50 p-3.5 rounded-2xl mb-4 border border-rose-200 space-y-2.5">
+                    <input type="url" id="custom-photo-url" placeholder="Dán đường dẫn ảnh (https://...)"
+                        class="w-full px-3.5 py-2 rounded-xl bg-white border border-rose-200 text-xs outline-none focus:border-rose-400">
+                    <div class="flex gap-2">
+                        <input type="text" id="custom-photo-caption" placeholder="Chú thích dễ thương cho ảnh này..."
+                            class="flex-1 px-3.5 py-2 rounded-xl bg-white border border-rose-200 text-xs outline-none focus:border-rose-400">
+                        <button type="button" onclick="confirmAddUrlPhoto()" class="bg-rose-500 text-white text-xs font-bold px-4 py-2 rounded-xl hover:bg-rose-600">
+                            Thêm
+                        </button>
+                        <button type="button" onclick="document.getElementById('url-input-box').classList.add('hidden')" class="text-gray-500 text-xs px-2">
+                            Hủy
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Danh sách ảnh đã thêm -->
+                <div id="editor-photos-list" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Render bằng JS -->
+                </div>
+            </div>
+
+            <!-- Phần 4: Voucher đền bù -->
+            <div class="border-t border-rose-100 pt-6">
+                <div class="flex items-center justify-between mb-3">
+                    <div>
+                        <h3 class="text-base font-bold text-gray-800 flex items-center gap-1.5">
+                            <span>🎟️</span> Quà & Voucher Đền Bù
+                        </h3>
+                        <p class="text-xs text-gray-500">Người yêu có thể bấm "Nhận quà" trực tiếp trên thiệp</p>
+                    </div>
+                    <button type="button" onclick="addVoucherItem()"
+                        class="bg-amber-100 hover:bg-amber-200 text-amber-800 text-xs font-bold px-3 py-2 rounded-xl transition">
+                        + Thêm quà
+                    </button>
+                </div>
+                <div id="editor-vouchers-list" class="space-y-2.5">
+                    <!-- Render bằng JS -->
+                </div>
+            </div>
+
+            <!-- Nút hành động chính -->
+            <div class="border-t border-rose-100 pt-6 flex flex-col sm:flex-row gap-3">
+                <button type="button" onclick="previewCard()"
+                    class="flex-1 bg-white hover:bg-rose-50 text-rose-600 border-2 border-rose-300 font-bold py-3.5 px-5 rounded-2xl shadow-sm transition active:scale-95 flex items-center justify-center gap-2 text-sm">
+                    <span>👀</span> Xem Thử Giao Diện
+                </button>
+                <button type="button" onclick="downloadStandaloneHtml()"
+                    class="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-3.5 px-5 rounded-2xl shadow-lg shadow-amber-200 transition active:scale-95 flex items-center justify-center gap-2 text-sm">
+                    <span>📥</span> Tải File Thiệp Gửi Zalo
+                </button>
+                <button type="button" onclick="generateShareLink()"
+                    class="flex-1 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-bold py-3.5 px-5 rounded-2xl shadow-lg shadow-rose-200 transition active:scale-95 flex items-center justify-center gap-2 text-sm">
+                    <span>🔗</span> Tạo Link Chia Sẻ
+                </button>
+            </div>
+
+            <!-- Hướng dẫn gửi cho người yêu cực dễ -->
+            <div class="bg-rose-50/80 border border-rose-200 rounded-2xl p-4 text-xs text-gray-700 space-y-2">
+                <p class="font-bold text-rose-700 text-sm">📲 2 Cách gửi cho người yêu mở được 100%:</p>
+                <ul class="list-disc list-inside space-y-1.5 leading-relaxed">
+                    <li><strong>Cách 1 (Dễ nhất - Gửi cả ảnh chụp từ máy):</strong> Bấm nút màu cam <strong>"Tải File Thiệp Gửi Zalo"</strong>. Web sẽ xuất ra 1 file <code class="bg-white px-1.5 py-0.5 rounded text-rose-600 font-bold">Thu-Xin-Loi.html</code> đã đóng gói sẵn ảnh & lời nhắn của bạn. Bạn chỉ cần gửi file này qua <strong>Zalo / Messenger</strong>, người yêu bấm vào là mở thẳng thiệp!</li>
+                    <li><strong>Cách 2 (Gửi bằng đường Link):</strong> Nếu bạn đang mở web trong khung Preview tạm thời, link tạo ra sẽ chưa mở được trên máy khác. Hãy up file web này lên trang miễn phí như <strong>tiiny.host</strong> hoặc <strong>netlify.com/drop</strong> (kéo thả mất 10 giây) rồi mở link đó để tạo link chia sẻ nhé!</li>
+                </ul>
+            </div>
+
+            <!-- Khu vực hiển thị Link chia sẻ sau khi tạo -->
+            <div id="share-result-box" class="hidden bg-gradient-to-br from-rose-50 to-pink-50 border-2 border-rose-200 rounded-2xl p-4 sm:p-5 space-y-3 animate-fadeIn">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <span class="text-sm font-bold text-rose-700 flex items-center gap-1.5">
+                        <span>🎉</span> Link thiệp xin lỗi của bạn:
+                    </span>
+                    <span id="link-length-badge" class="text-[11px] bg-white px-2.5 py-0.5 rounded-full text-gray-500 font-semibold border border-rose-100"></span>
+                </div>
+                <div id="preview-env-warning" class="hidden bg-amber-100 border border-amber-300 text-amber-900 text-xs p-3 rounded-xl">
+                    ⚠️ <strong>Lưu ý:</strong> Bạn đang chạy web ở chế độ xem thử nội bộ (chưa có tên miền online), nên đường link bên dưới sẽ không mở được trên điện thoại người yêu. Hãy dùng nút <strong>"Tải File Thiệp Gửi Zalo"</strong> ở trên để gửi trực tiếp nhé!
+                </div>
+                <div class="flex gap-2">
+                    <input type="text" id="generated-link-input" readonly
+                        class="flex-1 bg-white border border-rose-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-600 select-all outline-none">
+                    <button type="button" onclick="copyShareLink()"
+                        class="bg-rose-600 hover:bg-rose-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs sm:text-sm shadow transition active:scale-95 whitespace-nowrap">
+                        📋 Copy Link
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+
+    <!-- =====================================================================
+         2. CHẾ ĐỘ NGƯỜI YÊU XEM (VIEW MODE)
+         ===================================================================== -->
+    <section id="receiver-view" class="hidden relative z-10 min-h-screen flex flex-col items-center justify-center px-4 py-8">
+
+        <!-- BƯỚC 1: MÀN HÌNH PHONG BÌ THƯ CHỜ MỞ -->
+        <div id="envelope-stage" class="max-w-md w-full text-center my-auto py-10">
+            <div class="mb-6 animate-float">
+                <span class="inline-block bg-white/90 text-rose-500 text-xs font-bold px-4 py-1.5 rounded-full shadow-sm border border-rose-100">
+                    💌 Có một bức thư đặc biệt gửi riêng cho bạn
+                </span>
+            </div>
+
+            <!-- Phong bì thư CSS tương tác -->
+            <div id="envelope-card" onclick="openEnvelope()"
+                class="envelope-wrapper cursor-pointer mx-auto w-72 sm:w-80 h-48 sm:h-52 relative bg-gradient-to-b from-rose-200 to-rose-300 rounded-2xl shadow-2xl border-2 border-white flex items-center justify-center group transition-transform hover:scale-105">
+                
+                <!-- Nắp phong bì -->
+                <div class="envelope-flap absolute top-0 left-0 w-full h-1/2 bg-rose-400 rounded-t-2xl z-20 flex items-end justify-center pb-2 shadow-md"
+                    style="clip-path: polygon(0 0, 100% 0, 50% 100%);">
+                </div>
+
+                <!-- Lá thư ló ra bên trong -->
+                <div class="w-11/12 h-4/5 bg-white rounded-xl shadow-inner flex flex-col items-center justify-center p-4 z-10">
+                    <p class="font-script text-2xl sm:text-3xl text-rose-600 font-bold mb-1">
+                        Gửi <span id="env-lover-name">Em</span> ❤️
+                    </p>
+                    <p class="text-xs text-gray-400">Chạm vào phong bì để mở thư</p>
+                </div>
+
+                <!-- Con dấu trái tim ở giữa -->
+                <div class="absolute z-30 w-12 h-12 bg-rose-600 rounded-full shadow-lg border-2 border-white flex items-center justify-center text-white text-xl group-hover:scale-110 transition">
+                    ❤️
+                </div>
+            </div>
+
+            <button onclick="openEnvelope()"
+                class="mt-8 bg-rose-500 hover:bg-rose-600 text-white font-bold px-7 py-3 rounded-full shadow-lg shadow-rose-200 transition active:scale-95 text-sm animate-bounce">
+                ✨ Mở thư ngay nha ✨
+            </button>
+        </div>
+
+        <!-- BƯỚC 2: NỘI DUNG BỨC THƯ XIN LỖI SAU KHI MỞ -->
+        <div id="letter-content-stage" class="hidden max-w-2xl w-full space-y-8 pb-24">
+            
+            <!-- Thẻ thư chính -->
+            <div class="bg-white/95 backdrop-blur-md rounded-3xl shadow-xl border border-rose-100 p-6 sm:p-10 relative overflow-hidden fade-in-up">
+                <!-- Trang trí góc -->
+                <div class="absolute -top-6 -right-6 w-24 h-24 bg-rose-100 rounded-full opacity-60"></div>
+                <div class="absolute -bottom-8 -left-8 w-28 h-28 bg-pink-100 rounded-full opacity-60"></div>
+
+                <div class="relative z-10">
+                    <div class="flex items-center justify-between border-b border-rose-100 pb-4 mb-6">
+                        <div>
+                            <p class="text-xs uppercase tracking-wider text-rose-400 font-bold">Thư Xin Lỗi Chân Thành</p>
+                            <h2 class="font-script text-3xl sm:text-4xl font-bold text-rose-600 mt-1">
+                                Gửi <span id="view-lover-name">Công chúa của anh</span>,
+                            </h2>
+                        </div>
+                        <div class="text-4xl animate-wiggle">🥺</div>
+                    </div>
+
+                    <!-- Nội dung thư chạy từng dòng -->
+                    <div id="view-message-body" class="space-y-3 text-gray-700 text-base sm:text-lg leading-relaxed font-medium">
+                        <!-- Render từng đoạn bằng JS -->
+                    </div>
+
+                    <div class="mt-6 pt-4 border-t border-rose-50 text-right">
+                        <p class="text-sm text-gray-500">Người luôn thương em nhất,</p>
+                        <p id="view-sender-name" class="font-script text-2xl sm:text-3xl font-bold text-rose-600 mt-0.5">Anh</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Album Ảnh Polaroid Kỷ Niệm -->
+            <div id="view-album-section" class="space-y-4 fade-in-up">
+                <div class="text-center">
+                    <span class="bg-white/85 px-4 py-1.5 rounded-full text-rose-500 text-xs font-bold shadow-sm border border-rose-100">
+                        📸 Những khoảnh khắc tuyệt đẹp của tụi mình
+                    </span>
+                </div>
+                <div id="view-photos-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-6 px-2">
+                    <!-- Render khung ảnh Polaroid -->
+                </div>
+            </div>
+
+            <!-- Danh sách Voucher Đền Bù -->
+            <div id="view-vouchers-section" class="bg-white/90 backdrop-blur-md rounded-3xl shadow-lg border border-rose-100 p-6 sm:p-8 space-y-4 fade-in-up">
+                <div class="text-center">
+                    <h3 class="font-script text-3xl font-bold text-rose-600">Quà Đền Bù Đặc Biệt 🎁</h3>
+                    <p class="text-xs sm:text-sm text-gray-500 mt-1">Bấm vào từng thẻ để chốt đơn bắt đền ngay nhé!</p>
+                </div>
+                <div id="view-vouchers-list" class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2">
+                    <!-- Render voucher -->
+                </div>
+            </div>
+
+            <!-- PHẦN CHỐT HẠ KINH ĐIỂN: EM THA LỖI CHO ANH NHÉ? -->
+            <div id="forgive-box" class="bg-gradient-to-b from-white to-rose-50 rounded-3xl shadow-2xl border-2 border-rose-200 p-6 sm:p-10 text-center space-y-6 relative overflow-visible fade-in-up">
+                <div id="cute-reaction-emoji" class="text-5xl sm:text-6xl transition-transform duration-300">🥺👉👈</div>
+                
+                <div class="space-y-2">
+                    <h3 class="font-script text-3xl sm:text-4xl font-bold text-rose-600">
+                        <span id="question-lover-name">Em</span> tha lỗi cho <span id="question-sender-name">anh</span> nhé?
+                    </h3>
+                    <p id="pleading-subtitle" class="text-sm sm:text-base text-rose-500 font-semibold min-h-[24px] transition-all">
+                        Đừng giận nữa mà, hứa sẽ ngoan và nghe lời em hết mức!
+                    </p>
+                </div>
+
+                <!-- Khu vực 2 nút bấm -->
+                <div id="buttons-arena" class="flex flex-wrap items-center justify-center gap-4 pt-2 min-h-[90px] relative">
+                    <button id="btn-forgive-yes" onclick="handleForgiveYes()"
+                        class="bg-gradient-to-r from-emerald-400 to-teal-500 hover:from-emerald-500 hover:to-teal-600 text-white font-bold px-7 py-3.5 rounded-2xl shadow-lg shadow-emerald-200 transition-all duration-300 active:scale-95 text-base sm:text-lg z-20">
+                        Đồng ý tha lỗi ❤️
+                    </button>
+
+                    <button id="btn-forgive-no"
+                        class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold px-5 py-3 rounded-2xl shadow transition-all duration-150 text-sm sm:text-base z-30 select-none">
+                        Không bao giờ 😤
+                    </button>
+                </div>
+            </div>
+
+            <!-- MÀN HÌNH CHÚC MỪNG KHI BẤM ĐỒNG Ý THA LỖI -->
+            <div id="celebration-box" class="hidden bg-gradient-to-br from-rose-500 via-pink-500 to-rose-400 text-white rounded-3xl shadow-2xl p-7 sm:p-10 text-center space-y-5 fade-in-up">
+                <div class="text-6xl animate-bounce">🥰🎉💖</div>
+                <h2 class="font-script text-4xl sm:text-5xl font-bold">
+                    Yêu <span id="celeb-lover-name">Em</span> Nhất Trên Đời!
+                </h2>
+                <p class="text-sm sm:text-base text-rose-50 max-w-md mx-auto leading-relaxed">
+                    Cảm ơn <span id="celeb-lover-name-2">em</span> đã bao dung và tha lỗi cho <span id="celeb-sender-name">anh</span>! Từ giờ <span id="celeb-sender-name-2">anh</span> sẽ luôn trân trọng và yêu thương <span id="celeb-lover-name-3">em</span> nhiều hơn nữa!
+                </p>
+
+                <!-- Tóm tắt voucher đã chọn -->
+                <div id="claimed-summary" class="bg-white/20 backdrop-blur-sm rounded-2xl p-4 text-left text-xs sm:text-sm space-y-1.5 max-w-md mx-auto">
+                    <p class="font-bold text-white flex items-center gap-1.5"><span>🎟️</span> Quyền lợi đền bù đã chốt đơn:</p>
+                    <ul id="claimed-vouchers-ul" class="list-disc list-inside text-rose-50 space-y-1">
+                        <li>1 cái ôm thật chặt + 1000 nụ hôn bù đắp ❤️</li>
+                    </ul>
+                </div>
+
+                <div class="pt-2 flex flex-wrap justify-center gap-3">
+                    <button onclick="triggerFireworks()"
+                        class="bg-white text-rose-600 hover:bg-rose-50 font-bold px-5 py-3 rounded-2xl shadow-md transition active:scale-95 text-xs sm:text-sm">
+                        🎆 Bắn thêm pháo hoa
+                    </button>
+                    <button onclick="copyReplyMessage()"
+                        class="bg-rose-800/40 hover:bg-rose-800/60 border border-white/40 text-white font-bold px-5 py-3 rounded-2xl transition active:scale-95 text-xs sm:text-sm">
+                        💬 Copy tin nhắn trả lời
+                    </button>
+                </div>
+                <p class="text-[11px] text-rose-100 opacity-90">
+                    📸 Chụp màn hình này gửi lại để đòi quà đền bù ngay nhé!
+                </p>
+            </div>
+
+        </div>
+    </section>
+
+    <script>
+        /* =========================================================================
+           1. DỮ LIỆU & TRẠNG THÁI ỨNG DỤNG
+           ========================================================================= */
+        const EMBEDDED_PAYLOAD = null; // Sẽ tự động được điền dữ liệu khi xuất file gửi người yêu
+
+        const DEFAULT_DATA = {
+            loverName: "Công chúa của anh",
+            senderName: "Anh",
+            message: "Hôm nay anh thực sự sai rồi. Nhìn em buồn mà lòng anh thắt lại, chẳng làm được việc gì nên hồn cả. Anh không muốn vì sự vô tâm của mình mà làm nụ cười xinh đẹp nhất của em biến mất.\nCho anh xin lỗi thật nhiều nhé, đừng giận anh nữa mà tội nghiệp anh lắm... ❤️",
+            photos: [
+                {
+                    url: "https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=600&q=80",
+                    caption: "Nụ cười của em là điều đẹp nhất với anh 💕"
+                },
+                {
+                    url: "https://images.unsplash.com/photo-1522673607200-164d1b6ce486?auto=format&fit=crop&w=600&q=80",
+                    caption: "Mãi nắm tay nhau đi qua mọi giận hờn nhé ✨"
+                }
+            ],
+            vouchers: [
+                "🧋 1 ly trà sữa full topping không giới hạn",
+                "🍲 1 chầu lẩu / đồ nướng thả ga theo ý em",
+                "🛍️ Miễn phí 1 buổi dạo phố & mua quà nhỏ",
+                "💆‍♂️ Massage vai gáy + ngoan ngoãn nghe lời 1 tuần"
+            ]
+        };
+
+        let appState = JSON.parse(JSON.stringify(DEFAULT_DATA));
+        let claimedVouchers = new Set();
+        let noClickCount = 0;
+        let yesScale = 1;
+
+        const PLEADING_MESSAGES = [
+            "Ơ kìa, sao lại bấm nút này mà 🥺",
+            "Anh biết lỗi rồi mà hu hu, đừng bấm nữa...",
+            "Nút này bị hỏng rồi, bấm nút màu xanh bên kia cơ mà! 👉",
+            "Cho anh cơ hội sửa sai đi mà công chúa ơi 😭",
+            "Trái tim anh sắp tan vỡ thành trăm mảnh rồi nè 💔",
+            "Em nỡ lòng nào từ chối người đẹp trai/dễ thương này sao?",
+            "Hứa bao trà sữa full topping luôn, tha lỗi đi mà! 🧋",
+            "Bấm nút xanh đi em ơi, nút này không bấm được đâu 😜"
+        ];
+
+        const CUTE_EMOJIS = ["🥺👉👈", "😭💔", "😿🙏", "🥺🧋", "🧎‍♂️💐", "😿❤️‍🩹", "🥹✨"];
+
+        const SAMPLE_MESSAGES = [
+            "Hôm nay anh thực sự sai rồi. Nhìn em buồn mà lòng anh thắt lại, chẳng làm được việc gì nên hồn cả. Anh không muốn vì sự vô tâm của mình mà làm nụ cười xinh đẹp nhất của em biến mất.\nCho anh xin lỗi thật nhiều nhé, đừng giận anh nữa mà tội nghiệp anh lắm... ❤️",
+            "Thế giới này có thể rộng lớn, nhưng với anh, bình yên nhất vẫn là lúc thấy em cười. Anh xin lỗi vì đã làm em tổn thương và suy nghĩ nhiều. Cho anh một cơ hội để bù đắp và ôm em thật chặt nhé! 🥺💕",
+            "Gửi cục vàng của anh, anh biết anh ngốc nên mới chọc em giận. Em đừng im lặng nữa nha, em mắng anh cũng được, đánh anh cũng được, miễn là đừng giận anh nữa. Anh thương em nhiều lắm! 🌹"
+        ];
+        let sampleIndex = 0;
+
+        /* =========================================================================
+           2. KHỞI TẠO & KIỂM TRA LINK CHIA SẺ (URL HASH)
+           ========================================================================= */
+        window.addEventListener('DOMContentLoaded', () => {
+            startFloatingHearts();
+            setupRunawayButton();
+
+            // 1. Ưu tiên kiểm tra nếu đây là file đã đóng gói sẵn dữ liệu gửi người yêu
+            if (EMBEDDED_PAYLOAD && typeof EMBEDDED_PAYLOAD === 'object') {
+                appState = {
+                    loverName: EMBEDDED_PAYLOAD.l || DEFAULT_DATA.loverName,
+                    senderName: EMBEDDED_PAYLOAD.s || DEFAULT_DATA.senderName,
+                    message: EMBEDDED_PAYLOAD.m || DEFAULT_DATA.message,
+                    photos: Array.isArray(EMBEDDED_PAYLOAD.p) ? EMBEDDED_PAYLOAD.p : [],
+                    vouchers: Array.isArray(EMBEDDED_PAYLOAD.v) ? EMBEDDED_PAYLOAD.v : []
+                };
+                enterReceiverMode(true);
+                return;
+            }
+
+            // 2. Kiểm tra xem URL có chứa dữ liệu nén (#d=...) hay không
+            const hash = window.location.hash;
+            if (hash && hash.startsWith('#d=')) {
+                try {
+                    const compressed = hash.substring(3);
+                    const decompressed = LZString.decompressFromEncodedURIComponent(compressed);
+                    if (decompressed) {
+                        const parsed = JSON.parse(decompressed);
+                        appState = {
+                            loverName: parsed.l || DEFAULT_DATA.loverName,
+                            senderName: parsed.s || DEFAULT_DATA.senderName,
+                            message: parsed.m || DEFAULT_DATA.message,
+                            photos: Array.isArray(parsed.p) ? parsed.p : [],
+                            vouchers: Array.isArray(parsed.v) ? parsed.v : []
+                        };
+                        enterReceiverMode(true);
+                        return;
+                    }
+                } catch (err) {
+                    console.error("Lỗi giải mã link:", err);
+                    showToast("Link có vẻ bị thiếu ký tự, hiển thị bản mặc định nhé!", "⚠️");
+                }
+            }
+
+            // 3. Nếu không có dữ liệu sẵn -> Mở chế độ Editor
+            renderEditor();
+        });
+
+        /* =========================================================================
+           4. TẠO LINK CHIA SẺ, XUẤT FILE HTML & CHUYỂN CHẾ ĐỘ XEM
+           ========================================================================= */
+        function getCompactPayload() {
+            syncFormToState();
+            return {
+                l: appState.loverName,
+                s: appState.senderName,
+                m: appState.message,
+                p: appState.photos,
+                v: appState.vouchers.filter(item => item.trim() !== "")
+            };
+        }
+
+        function buildShareUrl() {
+            const payload = getCompactPayload();
+            const jsonStr = JSON.stringify(payload);
+            const compressed = LZString.compressToEncodedURIComponent(jsonStr);
+            const baseUrl = window.location.href.split('#')[0];
+            return `${baseUrl}#d=${compressed}`;
+        }
+
+        // Xuất thành 1 file HTML độc lập đã nhúng sẵn ảnh & lời nhắn để gửi thẳng qua Zalo/Messenger
+        function downloadStandaloneHtml() {
+            try {
+                const payload = getCompactPayload();
+                const fullHtml = document.documentElement.outerHTML;
+                const injectedHtml = '<!DOCTYPE html>\n' + fullHtml.replace(
+                    'const EMBEDDED_PAYLOAD = null;',
+                    `const EMBEDDED_PAYLOAD = ${JSON.stringify(payload)};`
+                );
+
+                const blob = new Blob([injectedHtml], { type: 'text/html;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                const safeName = (appState.loverName || 'Nguoi-Yeu')
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .replace(/[^a-zA-Z0-9]/g, '-');
+
+                a.href = url;
+                a.download = `Thu-Xin-Loi-${safeName}.html`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+                showToast("Đã tải file thiệp! Gửi file này qua Zalo cho người ấy nhé 💌", "📥");
+            } catch (err) {
+                console.error(err);
+                showToast("Có lỗi khi xuất file, hãy thử lại nhé!", "⚠️");
+            }
+        }
+
+        // Tải file index.html gốc (chưa khóa nội dung) để up thẳng lên GitHub Pages
+        function downloadBlankIndexHtml() {
+            try {
+                const fullHtml = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+                const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'index.html';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+                showToast("Đã tải file index.html về máy! Up file này lên GitHub nhé 🚀", "⬇️");
+            } catch (err) {
+                console.error(err);
+                showToast("Không thể tải file, hãy thử mở bằng Chrome/Safari nhé!", "⚠️");
+            }
+        }
+
+        function generateShareLink() {
+            const shareUrl = buildShareUrl();
+            const resultBox = document.getElementById('share-result-box');
+            const linkInput = document.getElementById('generated-link-input');
+            const badge = document.getElementById('link-length-badge');
+
+            linkInput.value = shareUrl;
+            resultBox.classList.remove('hidden');
+
+            const len = shareUrl.length;
+            if (len < 4000) {
+                badge.textContent = `Siêu gọn (${len} ký tự) • Gửi Zalo/Mess cực mượt`;
+                badge.className = "text-[11px] bg-emerald-100 text-emerald-700 px-2.5 py-0.5 rounded-full font-bold";
+            } else if (len < 15000) {
+                badge.textContent = `Vừa chuẩn (${Math.round(len/1024)}KB) • Sẵn sàng gửi`;
+                badge.className = "text-[11px] bg-amber-100 text-amber-700 px-2.5 py-0.5 rounded-full font-bold";
+            } else {
+                badge.textContent = `Hơi dài (${Math.round(len/1024)}KB) • Nên bớt 1 ảnh nếu Zalo cắt link`;
+                badge.className = "text-[11px] bg-rose-100 text-rose-700 px-2.5 py-0.5 rounded-full font-bold";
+            }
+
+            resultBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            copyShareLink();
+        }
+
+        function copyShareLink() {
+            const linkInput = document.getElementById('generated-link-input');
+            linkInput.select();
+            linkInput.setSelectionRange(0, 99999);
+            try {
+                document.execCommand('copy');
+                showToast("Đã copy link! Dán gửi người yêu ngay thôi 💌", "✅");
+            } catch (err) {
+                showToast("Hãy bôi đen và copy đường link bên dưới nhé!", "📋");
+            }
+        }
+
+        function previewCard() {
+            syncFormToState();
+            enterReceiverMode(false);
+        }
+
+        function switchToEditor() {
+            document.getElementById('receiver-view').classList.add('hidden');
+            document.getElementById('editor-view').classList.remove('hidden');
+            document.getElementById('back-to-editor-btn').classList.add('hidden');
+            renderEditor();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        /* =========================================================================
+           5. CHẾ ĐỘ NGƯỜI YÊU XEM (RECEIVER VIEW)
+           ========================================================================= */
+        function enterReceiverMode(isFromSharedLink) {
+            document.getElementById('editor-view').classList.add('hidden');
+            document.getElementById('receiver-view').classList.remove('hidden');
+
+            // Nếu đang xem thử từ Editor thì hiện nút quay lại sửa
+            if (!isFromSharedLink) {
+                document.getElementById('back-to-editor-btn').classList.remove('hidden');
+            } else {
+                document.getElementById('back-to-editor-btn').classList.add('hidden');
+            }
+
+            // Reset trạng thái phong bì & nút bấm
+            document.getElementById('envelope-stage').classList.remove('hidden');
+            document.getElementById('envelope-card').classList.remove('envelope-open');
+            document.getElementById('letter-content-stage').classList.add('hidden');
+            document.getElementById('forgive-box').classList.remove('hidden');
+            document.getElementById('celebration-box').classList.add('hidden');
+
+            noClickCount = 0;
+            yesScale = 1;
+            const yesBtn = document.getElementById('btn-forgive-yes');
+            yesBtn.style.transform = 'scale(1)';
+            const noBtn = document.getElementById('btn-forgive-no');
+            noBtn.style.position = 'static';
+            noBtn.textContent = 'Không bao giờ 😤';
+
+            // Điền tên người nhận
+            document.getElementById('env-lover-name').textContent = appState.loverName;
+            document.getElementById('view-lover-name').textContent = appState.loverName;
+            document.getElementById('view-sender-name').textContent = appState.senderName;
+            document.getElementById('question-lover-name').textContent = appState.loverName;
+            document.getElementById('question-sender-name').textContent = appState.senderName.toLowerCase();
+            document.getElementById('celeb-lover-name').textContent = appState.loverName;
+            document.getElementById('celeb-lover-name-2').textContent = appState.loverName;
+            document.getElementById('celeb-lover-name-3').textContent = appState.loverName;
+            document.getElementById('celeb-sender-name').textContent = appState.senderName.toLowerCase();
+            document.getElementById('celeb-sender-name-2').textContent = appState.senderName;
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function openEnvelope() {
+            const envCard = document.getElementById('envelope-card');
+            if (envCard.classList.contains('envelope-open')) return;
+
+            envCard.classList.add('envelope-open');
+
+            // Tự động bật nhạc piano nhẹ nhàng khi người yêu chạm mở thư
+            if (!isMusicPlaying) {
+                startPianoMusic();
+            }
+
+            setTimeout(() => {
+                document.getElementById('envelope-stage').classList.add('hidden');
+                document.getElementById('letter-content-stage').classList.remove('hidden');
+                renderLetterBody();
+                renderPolaroidGallery();
+                renderReceiverVouchers();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }, 650);
+        }
+
+        function renderLetterBody() {
+            const container = document.getElementById('view-message-body');
+            container.innerHTML = '';
+            const paragraphs = appState.message.split('\n').filter(p => p.trim() !== '');
+
+            paragraphs.forEach((text, index) => {
+                const p = document.createElement('p');
+                p.textContent = text;
+                p.style.opacity = '0';
+                p.style.animation = `fadeInUp 0.7s ease forwards ${index * 0.25}s`;
+                container.appendChild(p);
+            });
+        }
+
+        function renderPolaroidGallery() {
+            const section = document.getElementById('view-album-section');
+            const grid = document.getElementById('view-photos-grid');
+            grid.innerHTML = '';
+
+            if (!appState.photos || appState.photos.length === 0) {
+                section.classList.add('hidden');
+                return;
+            }
+            section.classList.remove('hidden');
+
+            const rotations = ['-rotate-2', 'rotate-2', 'rotate-1', '-rotate-1'];
+
+            appState.photos.forEach((photo, idx) => {
+                const rot = rotations[idx % rotations.length];
+                const item = document.createElement('div');
+                item.className = `polaroid ${rot}`;
+                item.innerHTML = `
+                    <div class="aspect-square w-full overflow-hidden rounded-lg bg-rose-50 mb-3">
+                        <img src="${photo.url}" alt="Kỷ niệm"
+                            onerror="this.src='https://placehold.co/400x400/FFE4E6/E11D48?text=Love+You'"
+                            class="w-full h-full object-cover">
+                    </div>
+                    <p class="font-script text-xl sm:text-2xl text-center text-gray-700 leading-snug px-1">
+                        ${escapeHtml(photo.caption)}
+                    </p>
+                `;
+                grid.appendChild(item);
+            });
+        }
+
+        function renderReceiverVouchers() {
+            const section = document.getElementById('view-vouchers-section');
+            const list = document.getElementById('view-vouchers-list');
+            list.innerHTML = '';
+            claimedVouchers.clear();
+
+            if (!appState.vouchers || appState.vouchers.length === 0) {
+                section.classList.add('hidden');
+                return;
+            }
+            section.classList.remove('hidden');
+
+            appState.vouchers.forEach((text, idx) => {
+                const card = document.createElement('button');
+                card.type = 'button';
+                card.className = "voucher-card rounded-2xl p-4 text-left flex items-center justify-between gap-3 transition hover:shadow-md active:scale-98";
+                card.innerHTML = `
+                    <span class="text-xs sm:text-sm font-bold text-gray-800">${escapeHtml(text)}</span>
+                    <span class="voucher-badge bg-rose-500 text-white text-[11px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap">
+                        Nhận quà
+                    </span>
+                `;
+                card.onclick = () => {
+                    const badge = card.querySelector('.voucher-badge');
+                    if (claimedVouchers.has(text)) {
+                        claimedVouchers.delete(text);
+                        badge.textContent = "Nhận quà";
+                        badge.className = "voucher-badge bg-rose-500 text-white text-[11px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap";
+                        card.classList.remove('ring-2', 'ring-emerald-400');
+                    } else {
+                        claimedVouchers.add(text);
+                        badge.textContent = "Đã chốt ✓";
+                        badge.className = "voucher-badge bg-emerald-500 text-white text-[11px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap";
+                        card.classList.add('ring-2', 'ring-emerald-400');
+                        showToast("Đã bỏ túi 1 voucher đền bù! 🎁", "🎉");
+                    }
+                };
+                list.appendChild(card);
+            });
+        }
+
+        /* =========================================================================
+           6. HIỆU ỨNG NÚT "KHÔNG BAO GIỜ" CHẠY TRỐN & CHỐT HẠ THA LỖI
+           ========================================================================= */
+        function setupRunawayButton() {
+            const noBtn = document.getElementById('btn-forgive-no');
+
+            const evadeAction = (e) => {
+                if (e) e.preventDefault();
+                noClickCount++;
+
+                // Đổi câu năn nỉ hài hước
+                const msgIndex = (noClickCount - 1) % PLEADING_MESSAGES.length;
+                document.getElementById('pleading-subtitle').textContent = PLEADING_MESSAGES[msgIndex];
+
+                // Đổi biểu cảm
+                const emojiIndex = noClickCount % CUTE_EMOJIS.length;
+                document.getElementById('cute-reaction-emoji').textContent = CUTE_EMOJIS[emojiIndex];
+
+                // Phóng to nút "Đồng ý tha lỗi" dần lên
+                yesScale = Math.min(yesScale + 0.14, 2.1);
+                const yesBtn = document.getElementById('btn-forgive-yes');
+                yesBtn.style.transform = `scale(${yesScale})`;
+
+                // Nhảy nút "Không bao giờ" sang vị trí ngẫu nhiên trong vùng an toàn
+                const arena = document.getElementById('forgive-box');
+                const arenaRect = arena.getBoundingClientRect();
+                const btnRect = noBtn.getBoundingClientRect();
+
+                const maxX = Math.max(20, arenaRect.width - btnRect.width - 24);
+                const maxY = Math.max(20, arenaRect.height - btnRect.height - 24);
+
+                const randomX = Math.floor(Math.random() * maxX) + 12;
+                const randomY = Math.floor(Math.random() * maxY) + 12;
+
+                noBtn.style.position = 'absolute';
+                noBtn.style.left = `${randomX}px`;
+                noBtn.style.top = `${randomY}px`;
+            };
+
+            // Hỗ trợ cả rê chuột trên PC và chạm trên điện thoại
+            noBtn.addEventListener('mouseover', evadeAction);
+            noBtn.addEventListener('touchstart', evadeAction, { passive: false });
+            noBtn.addEventListener('click', evadeAction);
+        }
+
+        function handleForgiveYes() {
+            document.getElementById('forgive-box').classList.add('hidden');
+            const celebBox = document.getElementById('celebration-box');
+            celebBox.classList.remove('hidden');
+
+            // Hiển thị danh sách quà người yêu đã bấm chọn
+            const ul = document.getElementById('claimed-vouchers-ul');
+            ul.innerHTML = '';
+            if (claimedVouchers.size > 0) {
+                claimedVouchers.forEach(item => {
+                    const li = document.createElement('li');
+                    li.textContent = item;
+                    ul.appendChild(li);
+                });
+            } else {
+                // Nếu chưa bấm chọn thì tặng toàn bộ voucher luôn!
+                appState.vouchers.forEach(item => {
+                    const li = document.createElement('li');
+                    li.textContent = item;
+                    ul.appendChild(li);
+                });
+            }
+
+            triggerFireworks();
+            celebBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        function triggerFireworks() {
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 90,
+                    spread: 75,
+                    origin: { y: 0.6 },
+                    colors: ['#FB7185', '#F43F5E', '#FBBF24', '#34D399', '#F472B6']
+                });
+                setTimeout(() => {
+                    confetti({
+                        particleCount: 60,
+                        angle: 60,
+                        spread: 55,
+                        origin: { x: 0 }
+                    });
+                    confetti({
+                        particleCount: 60,
+                        angle: 120,
+                        spread: 55,
+                        origin: { x: 1 }
+                    });
+                }, 300);
+            }
+        }
+
+        function copyReplyMessage() {
+            const gifts = claimedVouchers.size > 0
+                ? Array.from(claimedVouchers).join(', ')
+                : 'toàn bộ voucher đền bù';
+            const replyText = `Hứ, tạm tha lỗi cho ${appState.senderName.toLowerCase()} lần này đấy nha! ❤️ Nhớ thực hiện: ${gifts} đó! 🥰`;
+
+            const tempInput = document.createElement('textarea');
+            tempInput.value = replyText;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+
+            showToast("Đã copy câu trả lời! Dán gửi lại người ấy ngay nào 💬", "💖");
+        }
+
+        /* =========================================================================
+           7. NHẠC NỀN PIANO DU DƯƠNG BẰNG WEB AUDIO API (KHÔNG CẦN FILE MP3 NGOÀI)
+           ========================================================================= */
+        let audioCtx = null;
+        let isMusicPlaying = false;
+        let musicInterval = null;
+
+        // Giai điệu hợp âm piano nhẹ nhàng (C - Am - F - G)
+        const MELODY_NOTES = [
+            261.63, 329.63, 392.00, 523.25, // C major
+            220.00, 261.63, 329.63, 440.00, // A minor
+            174.61, 220.00, 261.63, 349.23, // F major
+            196.00, 246.94, 293.66, 392.00  // G major
+        ];
+        let noteStep = 0;
+
+        function playPianoNote(freq) {
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now);
+
+            gain.gain.setValueAtTime(0.001, now);
+            gain.gain.exponentialRampToValueAtTime(0.08, now + 0.06);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.4);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.start(now);
+            osc.stop(now + 1.45);
+        }
+
+        function startPianoMusic() {
+            try {
+                if (!audioCtx) {
+                    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                    audioCtx = new AudioContextClass();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+
+                isMusicPlaying = true;
+                updateMusicButtonUI();
+
+                if (musicInterval) clearInterval(musicInterval);
+                playPianoNote(MELODY_NOTES[noteStep % MELODY_NOTES.length]);
+                noteStep++;
+
+                musicInterval = setInterval(() => {
+                    if (!isMusicPlaying) return;
+                    playPianoNote(MELODY_NOTES[noteStep % MELODY_NOTES.length]);
+                    noteStep++;
+                }, 650);
+            } catch (e) {
+                console.warn("Trình duyệt chặn tự động phát âm thanh:", e);
+            }
+        }
+
+        function stopPianoMusic() {
+            isMusicPlaying = false;
+            if (musicInterval) {
+                clearInterval(musicInterval);
+                musicInterval = null;
+            }
+            updateMusicButtonUI();
+        }
+
+        function toggleMusic() {
+            if (isMusicPlaying) {
+                stopPianoMusic();
+            } else {
+                startPianoMusic();
+            }
+        }
+
+        function updateMusicButtonUI() {
+            const icon = document.getElementById('music-icon');
+            const label = document.getElementById('music-label');
+            if (isMusicPlaying) {
+                icon.textContent = '🎵';
+                label.textContent = 'Đang phát';
+            } else {
+                icon.textContent = '🔇';
+                label.textContent = 'Bật nhạc';
+            }
+        }
+
+        /* =========================================================================
+           8. HIỆU ỨNG TIM BAY NỀN & TIỆN ÍCH
+           ========================================================================= */
+        function startFloatingHearts() {
+            const container = document.getElementById('hearts-container');
+            const heartIcons = ['❤️', '💖', '💕', '🌸', '💗'];
+
+            setInterval(() => {
+                const heart = document.createElement('div');
+                heart.className = 'floating-heart';
+                heart.textContent = heartIcons[Math.floor(Math.random() * heartIcons.length)];
+                heart.style.left = `${Math.random() * 100}vw`;
+                heart.style.fontSize = `${Math.random() * 14 + 14}px`;
+                const duration = Math.random() * 4 + 6;
+                heart.style.animationDuration = `${duration}s`;
+
+                container.appendChild(heart);
+                setTimeout(() => heart.remove(), duration * 1000);
+            }, 900);
+        }
+
+        let toastTimer = null;
+        function showToast(message, icon = "💌") {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').textContent = message;
+            document.getElementById('toast-icon').textContent = icon;
+
+            toast.classList.remove('hidden');
+            setTimeout(() => {
+                toast.classList.remove('scale-95', 'opacity-0');
+                toast.classList.add('scale-100', 'opacity-100');
+            }, 10);
+
+            if (toastTimer) clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => {
+                toast.classList.remove('scale-100', 'opacity-100');
+                toast.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => toast.classList.add('hidden'), 300);
+            }, 3000);
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+<
